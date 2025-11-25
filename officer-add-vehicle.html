@@ -789,7 +789,7 @@ function closeModalAndRedirect() {
 
                 // 2. Generate QR Code with URL that opens scanner directly
 // Minimal QR data - just the document ID
-const qrDataForScanner = `http://192.168.1.9:8080/impoundofficer/scanner.html?id=${docId}`;
+const qrDataForScanner = `https://add-vehicle-smoky.vercel.app/scanner.html?id=${docId}`;
 const qrImageBase64 = await generateQrCode(qrDataForScanner);
 
                 // 3. Update document with QR code
