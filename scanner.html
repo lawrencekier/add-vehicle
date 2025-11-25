@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LTO Vehicle Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+    <style>
+        :root {
+            --lto-blue: #0056a6;
+            --lto-light-blue: #e6f0ff;
+            --lto-dark-blue: #003d7a;
+            --lto-yellow: #ffcc00;
+            --lto-white: #ffffff;
+            --lto-gray: #f5f5f5;
+            --lto-dark-gray: #333333;
+            --lto-light-gray: #e0e0e0;
+            --lto-green: #28a745;
+            --lto-red: #dc3545;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0056a6, #003d7a);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            background: #0056a6;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .scanner-section {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            border: 3px solid #0056a6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .manual-section {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            display: none;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: #0056a6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #003d7a;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #0056a6;
+            color: #0056a6;
+        }
+
+        .result-section {
+            display: none;
+            padding: 20px;
+        }
+
+        .vehicle-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #0056a6;
+        }
+
+        .section-title {
+            color: #0056a6;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #e6f0ff;
+            padding-bottom: 5px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #0056a6;
+        }
+
+        .info-value {
+            color: #333;
+            text-align: right;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+        }
+
+        /* Mobile View for QR Results */
+        .mobile-view {
+            display: none;
+        }
+
+        .mobile-header {
+            background: var(--lto-blue);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .mobile-content {
+            margin-top: 70px;
+            padding: 15px;
+            background: white;
+            min-height: calc(100vh - 70px);
+        }
+
+        .mobile-vehicle-card {
+            background: var(--lto-white);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--lto-blue);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mobile-section {
+            margin-bottom: 20px;
+        }
+
+        .mobile-section-title {
+            color: var(--lto-blue);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--lto-light-blue);
+        }
+
+        .mobile-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--lto-light-gray);
+        }
+
+        .mobile-info-label {
+            font-weight: 500;
+            color: var(--lto-dark-blue);
+            font-size: 14px;
+        }
+
+        .mobile-info-value {
+            color: var(--lto-dark-gray);
+            text-align: right;
+            font-size: 14px;
+            max-width: 60%;
+        }
+
+        .mobile-actions {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            border-top: 1px solid var(--lto-light-gray);
+            display: flex;
+            gap: 10px;
+        }
+
+        .mobile-btn {
+            flex: 1;
+            background: var(--lto-blue);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                background: var(--lto-light-blue);
+            }
+
+            .container {
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .scanner-section {
+                padding: 15px;
+            }
+
+            #reader {
+                max-width: 280px;
+            }
+
+            .vehicle-card {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .section-title {
+                font-size: 16px;
+            }
+
+            .info-item {
+                padding: 6px 0;
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            /* Show mobile view when in mobile and has vehicle data */
+            .mobile-view.active {
+                display: block;
+            }
+
+            .desktop-view {
+                display: none;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .mobile-view {
+                display: none !important;
+            }
+
+            .desktop-view {
+                display: block;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Desktop View -->
+    <div class="container desktop-view">
+        <div class="header">
+            <h1>🚗 LTO Vehicle Scanner</h1>
+            <p>Scan QR code to view impound details</p>
+        </div>
+        
+        <div class="scanner-section" id="scannerSection">
+            <div id="reader"></div>
+            <p style="margin: 15px 0; color: #666;">OR</p>
+            <button class="btn btn-outline" onclick="showManualInput()">Enter Document ID Manually</button>
+        </div>
+        
+        <div class="manual-section" id="manualSection">
+            <input type="text" id="manualId" placeholder="Enter Vehicle Document ID" style="width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #e0e0e0; border-radius: 6px;">
+            <button class="btn" onclick="processManualId()">Load Vehicle Details</button>
+            <button class="btn btn-outline" onclick="hideManualInput()">Back to Scanner</button>
+        </div>
+        
+        <div class="result-section" id="resultSection">
+            <div id="resultContent" class="loading">Loading vehicle information...</div>
+            <button class="btn" onclick="resetScanner()">Scan Another Vehicle</button>
+        </div>
+    </div>
+
+    <!-- Mobile View (Hidden by default) -->
+    <div class="mobile-view" id="mobileView">
+        <div class="mobile-header">
+            <h1>🚗 LTO Vehicle Details</h1>
+        </div>
+        <div class="mobile-content" id="mobileContent">
+            <div class="loading">Loading vehicle information...</div>
+        </div>
+        <div class="mobile-actions">
+            <button class="mobile-btn" onclick="resetScanner()">Scan Another</button>
+            <button class="mobile-btn" onclick="closeMobileView()" style="background: var(--lto-gray); color: var(--lto-dark-gray);">Close</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+
+        // Your Firebase config (SAME AS YOUR ADD VEHICLE PAGE)
+        const firebaseConfig = {
+            apiKey: "AIzaSyByzd88bcUAq0VdP0w6oB8W_b2AUgoIzXc",
+            authDomain: "vehicle-impound.firebaseapp.com",
+            projectId: "vehicle-impound",
+            storageBucket: "vehicle-impound.appspot.com",
+            messagingSenderId: "69239563292",
+            appId: "1:69239563292:web:281912e8a38301c0feabd9"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let scanner = null;
+
+        // Check for vehicle ID in URL on page load
+        const urlParams = new URLSearchParams(window.location.search);
+        const vehicleId = urlParams.get('id');
+
+        if (vehicleId) {
+            // If ID is in URL, load vehicle data immediately
+            loadVehicleData(vehicleId);
+        }
+
+        // Function to load vehicle data from Firebase
+        async function loadVehicleData(vehicleId) {
+            try {
+                showLoading();
+                const docRef = doc(db, "impoundedVehicles", vehicleId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const vehicleData = docSnap.data();
+                    displayVehicleInfo(vehicleData);
+                } else {
+                    showError("Vehicle not found in database. Please check the Document ID.");
+                }
+            } catch (error) {
+                console.error("Error loading vehicle:", error);
+                showError("Error loading vehicle data: " + error.message);
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('scannerSection').style.display = 'none';
+            document.getElementById('manualSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
+            document.getElementById('resultContent').innerHTML = '<div class="loading">Loading vehicle information...</div>';
+            
+            // Also show loading in mobile view
+            document.getElementById('mobileContent').innerHTML = '<div class="loading">Loading vehicle information...</div>';
+            if (window.innerWidth <= 768) {
+                document.getElementById('mobileView').classList.add('active');
+            }
+        }
+
+        function displayVehicleInfo(data) {
+            // Desktop View
+            document.getElementById('scannerSection').style.display = 'none';
+            document.getElementById('manualSection').style.display = 'none';
+            document.getElementById('resultSection').style.display = 'block';
+            
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = `
+                <div class="success">
+                    ✅ Vehicle details loaded successfully
+                </div>
+                
+                <div class="vehicle-card">
+                    <h3 class="section-title">Vehicle Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Plate Number:</span>
+                            <span class="info-value">${data.plateNumber || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Vehicle Type:</span>
+                            <span class="info-value">${data.vehicleType || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Model:</span>
+                            <span class="info-value">${data.vehicleModel || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Color:</span>
+                            <span class="info-value">${data.vehicleColor || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vehicle-card">
+                    <h3 class="section-title">Owner Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Owner Name:</span>
+                            <span class="info-value">${data.ownerName || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Contact:</span>
+                            <span class="info-value">${data.ownerContact || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vehicle-card">
+                    <h3 class="section-title">Impound Details</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Slot Number:</span>
+                            <span class="info-value">${data.slotNumber || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Impound Date:</span>
+                            <span class="info-value">${data.impoundDate || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Impound Time:</span>
+                            <span class="info-value">${data.impoundTime || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Location:</span>
+                            <span class="info-value">${data.towingLocation || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="vehicle-card">
+                    <h3 class="section-title">Violation Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Violation:</span>
+                            <span class="info-value">${data.violation || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Details:</span>
+                            <span class="info-value">${data.violationDetails || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                ${data.conditionNotes ? `
+                <div class="vehicle-card">
+                    <h3 class="section-title">Condition Notes</h3>
+                    <div class="info-item">
+                        <span class="info-value" style="text-align: left;">${data.conditionNotes}</span>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div class="info-item">
+                    <span class="info-label">Impounding Officer:</span>
+                    <span class="info-value">${data.impoundingOfficer || 'N/A'}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value">${data.status || 'impounded'}</span>
+                </div>
+            `;
+
+            // Mobile View
+            const mobileContent = document.getElementById('mobileContent');
+            mobileContent.innerHTML = `
+                <div class="success" style="margin: 10px 0;">
+                    ✅ Vehicle details loaded
+                </div>
+                
+                <div class="mobile-section">
+                    <div class="mobile-section-title">Vehicle Information</div>
+                    <div class="mobile-vehicle-card">
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Plate Number:</span>
+                            <span class="mobile-info-value">${data.plateNumber || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Vehicle Type:</span>
+                            <span class="mobile-info-value">${data.vehicleType || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Model:</span>
+                            <span class="mobile-info-value">${data.vehicleModel || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Color:</span>
+                            <span class="mobile-info-value">${data.vehicleColor || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-section">
+                    <div class="mobile-section-title">Owner Information</div>
+                    <div class="mobile-vehicle-card">
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Owner Name:</span>
+                            <span class="mobile-info-value">${data.ownerName || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Contact:</span>
+                            <span class="mobile-info-value">${data.ownerContact || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-section">
+                    <div class="mobile-section-title">Impound Details</div>
+                    <div class="mobile-vehicle-card">
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Slot Number:</span>
+                            <span class="mobile-info-value">${data.slotNumber || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Impound Date:</span>
+                            <span class="mobile-info-value">${data.impoundDate || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Impound Time:</span>
+                            <span class="mobile-info-value">${data.impoundTime || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Location:</span>
+                            <span class="mobile-info-value">${data.towingLocation || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-section">
+                    <div class="mobile-section-title">Violation Information</div>
+                    <div class="mobile-vehicle-card">
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Violation:</span>
+                            <span class="mobile-info-value">${data.violation || 'N/A'}</span>
+                        </div>
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-label">Details:</span>
+                            <span class="mobile-info-value">${data.violationDetails || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${data.conditionNotes ? `
+                <div class="mobile-section">
+                    <div class="mobile-section-title">Condition Notes</div>
+                    <div class="mobile-vehicle-card">
+                        <div class="mobile-info-item">
+                            <span class="mobile-info-value" style="text-align: left; width: 100%;">${data.conditionNotes}</span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="mobile-vehicle-card">
+                    <div class="mobile-info-item">
+                        <span class="mobile-info-label">Impounding Officer:</span>
+                        <span class="mobile-info-value">${data.impoundingOfficer || 'N/A'}</span>
+                    </div>
+                    <div class="mobile-info-item">
+                        <span class="mobile-info-label">Status:</span>
+                        <span class="mobile-info-value">${data.status || 'impounded'}</span>
+                    </div>
+                </div>
+            `;
+
+            // Show mobile view on mobile devices
+            if (window.innerWidth <= 768) {
+                document.getElementById('mobileView').classList.add('active');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('resultContent').innerHTML = `<div class="error">${message}</div>`;
+            document.getElementById('resultSection').style.display = 'block';
+            
+            // Also show error in mobile view
+            document.getElementById('mobileContent').innerHTML = `<div class="error">${message}</div>`;
+            if (window.innerWidth <= 768) {
+                document.getElementById('mobileView').classList.add('active');
+            }
+        }
+
+        function showManualInput() {
+            document.getElementById('scannerSection').style.display = 'none';
+            document.getElementById('manualSection').style.display = 'block';
+            if (scanner) scanner.clear();
+        }
+
+        function hideManualInput() {
+            document.getElementById('manualSection').style.display = 'none';
+            document.getElementById('scannerSection').style.display = 'block';
+            startScanner();
+        }
+
+        function processManualId() {
+            const manualId = document.getElementById('manualId').value.trim();
+            if (manualId) {
+                loadVehicleData(manualId);
+            } else {
+                alert("Please enter a Document ID");
+            }
+        }
+
+        function resetScanner() {
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('scannerSection').style.display = 'block';
+            document.getElementById('manualId').value = '';
+            document.getElementById('mobileView').classList.remove('active');
+            startScanner();
+        }
+
+        function closeMobileView() {
+            document.getElementById('mobileView').classList.remove('active');
+            resetScanner();
+        }
+
+        // QR Scanner functions
+        function onScanSuccess(decodedText, decodedResult) {
+            try {
+                // If it's a URL with ID parameter
+                if (decodedText.includes('scanner.html?id=')) {
+                    const url = new URL(decodedText);
+                    const vehicleId = url.searchParams.get('id');
+                    if (vehicleId) {
+                        loadVehicleData(vehicleId);
+                        if (scanner) scanner.clear();
+                        return;
+                    }
+                }
+                // If it's just the raw document ID
+                if (decodedText.length > 5 && decodedText.length < 30) {
+                    loadVehicleData(decodedText);
+                    if (scanner) scanner.clear();
+                    return;
+                }
+                showError("Invalid QR code format");
+            } catch (error) {
+                showError("Invalid QR code: " + error.message);
+            }
+        }
+
+        function startScanner() {
+            if (!scanner) {
+                scanner = new Html5QrcodeScanner("reader", { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 250 }
+                });
+            }
+            scanner.render(onScanSuccess);
+        }
+
+        // Initialize scanner
+        startScanner();
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                document.getElementById('mobileView').classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
